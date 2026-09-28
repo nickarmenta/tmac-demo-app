@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>TMAC Demo App</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header>
+    <h1>TMAC Demo App</h1>
+    <p class="lede">A tool being built live during this talk. AI writes the code, and the app runs without AI. Refresh to see new features.</p>
+  </header>
+
+  <main>
+    <section aria-labelledby="shipped-heading">
+      <h2 id="shipped-heading">What's live</h2>
+      <p id="status" class="muted" role="status">Loading…</p>
+      <ol id="shipped" class="shipped"></ol>
+    </section>
+  </main>
+
+  <footer>
+    <a href="https://github.com/nickarmenta/tmac-demo-app">Source on GitHub</a>
+    <span class="muted">· static files only · no accounts · data stays on your device</span>
+  </footer>
+</body>
+</html>
