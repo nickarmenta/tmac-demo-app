@@ -4,27 +4,248 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>TMAC Demo App</title>
+  <meta name="description" content="Plan a week of healthy family meals that fit your diet and budget, then shop from one grocery list.">
+  <title>Family Meal Planner</title>
   <link rel="stylesheet" href="style.css">
   <script type="module" src="app.js"></script>
 </head>
 <body>
   <header>
-    <h1>TMAC Demo App</h1>
-    <p class="lede">A tool being built live during this talk. AI writes the code, and the app runs without AI. Refresh to see new features.</p>
+    <h1>Family Meal Planner</h1>
+    <p class="lede">Plan a week of healthy meals that fit your family's diet and budget, then shop from one grocery list that builds itself.</p>
   </header>
 
+  <div id="shared-banner" class="banner" role="region" aria-label="Shared plan" hidden>
+    <p>Someone shared a meal plan with you. Load it? This replaces your current plan and settings (you can undo).</p>
+    <div class="row">
+      <button type="button" class="primary" id="shared-load">Load shared plan</button>
+      <button type="button" id="shared-dismiss">Keep mine</button>
+    </div>
+  </div>
+
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button type="button" role="tab" id="tab-plan" aria-controls="panel-plan">Plan</button>
+    <button type="button" role="tab" id="tab-groceries" aria-controls="panel-groceries">Groceries</button>
+    <button type="button" role="tab" id="tab-recipes" aria-controls="panel-recipes">Recipes</button>
+    <button type="button" role="tab" id="tab-settings" aria-controls="panel-settings">Settings</button>
+  </nav>
+
   <main>
-    <section aria-labelledby="shipped-heading">
-      <h2 id="shipped-heading">What's live</h2>
-      <p id="status" class="muted" role="status">Loading…</p>
-      <ol id="shipped" class="shipped"></ol>
+    <p id="loading" class="muted" role="status">Loading your plan…</p>
+
+    <section id="panel-plan" role="tabpanel" aria-labelledby="tab-plan" hidden>
+      <div id="summary" class="card"></div>
+      <div class="row toolbar">
+        <button type="button" class="primary" id="new-plan">New plan</button>
+        <button type="button" id="share-plan">Share plan</button>
+      </div>
+      <p class="muted small">Tap a meal for its recipe. The arrows swap it, the lock keeps it when you make a new plan, and × skips it.</p>
+      <div id="days"></div>
+    </section>
+
+    <section id="panel-groceries" role="tabpanel" aria-labelledby="tab-groceries" hidden>
+      <div id="grocery-summary" class="card"></div>
+      <div class="row toolbar">
+        <button type="button" class="primary" id="copy-list">Copy list</button>
+        <button type="button" id="uncheck-all">Uncheck all</button>
+        <label class="check"><input type="checkbox" id="hide-checked"> Hide checked</label>
+      </div>
+      <details class="card" id="extra-details">
+      <summary>Add something else (paper towels, snacks…)</summary>
+      <form id="extra-form" novalidate>
+        <div class="grid-3">
+          <div class="field grow">
+            <label for="extra-name">Item</label>
+            <input id="extra-name" autocomplete="off" placeholder="e.g. Paper towels" aria-describedby="extra-name-error">
+          </div>
+          <div class="field">
+            <label for="extra-qty">Qty</label>
+            <input id="extra-qty" autocomplete="off" placeholder="1">
+          </div>
+          <div class="field">
+            <label for="extra-price">Price $</label>
+            <input id="extra-price" inputmode="decimal" autocomplete="off" placeholder="optional" aria-describedby="extra-price-error">
+          </div>
+        </div>
+        <p class="error" id="extra-name-error" aria-live="polite"></p>
+        <p class="error" id="extra-price-error" aria-live="polite"></p>
+        <button type="submit">Add to list</button>
+      </form>
+      </details>
+      <div id="grocery-list"></div>
+    </section>
+
+    <section id="panel-recipes" role="tabpanel" aria-labelledby="tab-recipes" hidden>
+      <div class="grid-2">
+        <div class="field">
+          <label for="recipe-search">Search</label>
+          <input id="recipe-search" type="search" placeholder="e.g. chicken, lentil" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="recipe-meal">Meal</label>
+          <select id="recipe-meal">
+            <option value="all">All meals</option>
+            <option value="breakfast">Breakfast</option>
+            <option value="lunch">Lunch</option>
+            <option value="dinner">Dinner</option>
+          </select>
+        </div>
+      </div>
+      <label class="check"><input type="checkbox" id="recipe-fits" checked> Only recipes that fit my settings</label>
+      <p id="recipe-count" class="muted small" role="status"></p>
+      <ul id="recipe-list" class="plain"></ul>
+
+      <details id="add-recipe" class="card">
+        <summary>Add your own recipe</summary>
+        <form id="recipe-form" novalidate>
+          <div class="field">
+            <label for="cr-name">Recipe name</label>
+            <input id="cr-name" autocomplete="off" placeholder="e.g. Grandma's chicken soup" aria-describedby="cr-name-error">
+            <p class="error" id="cr-name-error"></p>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label for="cr-meal">Meal</label>
+              <select id="cr-meal"><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner" selected>Dinner</option></select>
+            </div>
+            <div class="field">
+              <label for="cr-serves">Serves</label>
+              <input id="cr-serves" type="number" inputmode="numeric" min="1" max="50" value="4" aria-describedby="cr-serves-error">
+              <p class="error" id="cr-serves-error"></p>
+            </div>
+            <div class="field">
+              <label for="cr-kcal">Calories per serving</label>
+              <input id="cr-kcal" type="number" inputmode="numeric" min="0" max="3000" placeholder="e.g. 450" aria-describedby="cr-kcal-error">
+              <p class="error" id="cr-kcal-error"></p>
+            </div>
+            <div class="field">
+              <label for="cr-cost">Total cost $ (optional)</label>
+              <input id="cr-cost" inputmode="decimal" placeholder="e.g. 12" aria-describedby="cr-cost-error">
+              <p class="error" id="cr-cost-error"></p>
+            </div>
+            <div class="field">
+              <label for="cr-protein">Protein g/serving (optional)</label>
+              <input id="cr-protein" type="number" inputmode="numeric" min="0" max="300" aria-describedby="cr-protein-error">
+              <p class="error" id="cr-protein-error"></p>
+            </div>
+            <div class="field">
+              <label for="cr-carbs">Carbs g/serving (optional)</label>
+              <input id="cr-carbs" type="number" inputmode="numeric" min="0" max="500" aria-describedby="cr-carbs-error">
+              <p class="error" id="cr-carbs-error"></p>
+            </div>
+            <div class="field">
+              <label for="cr-minutes">Minutes (optional)</label>
+              <input id="cr-minutes" type="number" inputmode="numeric" min="0" max="1440" aria-describedby="cr-minutes-error">
+              <p class="error" id="cr-minutes-error"></p>
+            </div>
+          </div>
+          <div class="field">
+            <label for="cr-ingredients">Ingredients for the whole recipe, one per line</label>
+            <textarea id="cr-ingredients" rows="5" placeholder="2 lb chicken breast&#10;1 can black beans&#10;3 carrots" aria-describedby="cr-ingredients-hint cr-ingredients-error"></textarea>
+            <p class="muted small" id="cr-ingredients-hint">Amounts scale to your household and go on the grocery list. Diet tags (meat, dairy, gluten…) are detected from these words.</p>
+            <p class="error" id="cr-ingredients-error"></p>
+          </div>
+          <div class="field">
+            <label for="cr-steps">Steps, one per line (optional)</label>
+            <textarea id="cr-steps" rows="3"></textarea>
+          </div>
+          <div class="row">
+            <button type="submit" class="primary" id="cr-submit">Save recipe</button>
+            <button type="button" id="cr-cancel">Cancel</button>
+          </div>
+        </form>
+      </details>
+
+      <div id="hidden-recipes"></div>
+    </section>
+
+    <section id="panel-settings" role="tabpanel" aria-labelledby="tab-settings" hidden>
+      <form id="settings-form" novalidate>
+        <fieldset class="card">
+          <legend>Household</legend>
+          <div class="grid-2">
+            <div class="field">
+              <label for="s-adults">Adults &amp; teens</label>
+              <div class="stepper">
+                <button type="button" data-step="s-adults" data-delta="-1" aria-label="Fewer adults">−</button>
+                <input id="s-adults" type="number" inputmode="numeric" min="0" max="20" aria-describedby="s-adults-error">
+                <button type="button" data-step="s-adults" data-delta="1" aria-label="More adults">+</button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="s-kids">Kids (smaller portions)</label>
+              <div class="stepper">
+                <button type="button" data-step="s-kids" data-delta="-1" aria-label="Fewer kids">−</button>
+                <input id="s-kids" type="number" inputmode="numeric" min="0" max="20" aria-describedby="s-adults-error">
+                <button type="button" data-step="s-kids" data-delta="1" aria-label="More kids">+</button>
+              </div>
+            </div>
+          </div>
+          <p class="error" id="s-adults-error" aria-live="polite"></p>
+        </fieldset>
+
+        <fieldset class="card">
+          <legend>Budget &amp; health</legend>
+          <div class="grid-2">
+            <div class="field">
+              <label for="s-budget">Weekly grocery budget $</label>
+              <input id="s-budget" type="number" inputmode="decimal" min="0" max="5000" step="5" aria-describedby="s-budget-error">
+              <p class="error" id="s-budget-error" aria-live="polite"></p>
+            </div>
+            <div class="field">
+              <label for="s-calories">Daily calorie goal per adult</label>
+              <input id="s-calories" type="number" inputmode="numeric" min="800" max="5000" step="50" aria-describedby="s-calories-error">
+              <p class="error" id="s-calories-error" aria-live="polite"></p>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="card">
+          <legend>Meals to plan</legend>
+          <div class="chips" id="s-meals"></div>
+          <p class="error" id="s-meals-error" aria-live="polite"></p>
+        </fieldset>
+
+        <fieldset class="card">
+          <legend>Diet &amp; allergies</legend>
+          <div class="chips" id="s-diets"></div>
+          <div class="field">
+            <label for="s-avoid">Never include (comma-separated)</label>
+            <input id="s-avoid" autocomplete="off" placeholder="e.g. mushroom, shrimp, cilantro">
+          </div>
+          <p class="muted small">Gluten-free plans include oats. Buy certified gluten-free oats if you need them.</p>
+        </fieldset>
+      </form>
+
+      <section class="card" aria-labelledby="data-heading">
+        <h2 id="data-heading" class="h-small">Your data</h2>
+        <p class="muted small">Everything is saved in this browser only. Use Share plan to move it to another phone.</p>
+        <button type="button" class="danger" id="reset-all">Reset everything</button>
+      </section>
     </section>
   </main>
 
+  <dialog id="recipe-dialog" aria-label="Recipe"></dialog>
+
+  <dialog id="confirm-dialog" aria-labelledby="confirm-title">
+    <form method="dialog" class="dialog-body">
+      <h2 id="confirm-title"></h2>
+      <p id="confirm-msg"></p>
+      <div class="row">
+        <button value="cancel">Cancel</button>
+        <button value="ok" class="danger" id="confirm-ok">OK</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
   <footer>
-    <a href="https://github.com/nickarmenta/tmac-demo-app">Source on GitHub</a>
-    <span class="muted">· static files only · no accounts · data stays on your device</span>
+    <details>
+      <summary>Built live during the talk</summary>
+      <ol id="shipped" class="plain small"></ol>
+    </details>
+    <p class="small"><a href="https://github.com/nickarmenta/tmac-demo-app">Source on GitHub</a> <span class="muted">· static files only · no accounts · no AI at runtime · your data stays on your device</span></p>
   </footer>
 </body>
 </html>
